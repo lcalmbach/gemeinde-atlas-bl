@@ -9,12 +9,12 @@ import requests
 import altair as alt
 from plots import chloropleth_chart, barchart
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
 VERSION_DATE = "2023-09-16"
 APP_NAME = "GemeindeAtlas-BL"
-GIT_REPO = "https://github.com/lcalmbach/nbcn-browser"
+GIT_REPO = "https://github.com/lcalmbach/gemeinde-atlas-bl"
 
 gemeinden_json = "./gemeinden.json"
 
