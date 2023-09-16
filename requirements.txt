@@ -2,3 +2,4 @@ streamlit
 geojson
 streamlit_folium
 folium
+iso639
