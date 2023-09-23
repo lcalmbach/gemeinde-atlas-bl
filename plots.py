@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import altair as alt
 import folium
+import plotly.graph_objects as go
 from streamlit_folium import st_folium
 
 from helper import round_to_nearest
@@ -11,9 +12,6 @@ from helper import round_to_nearest
 def chloropleth_chart(df, settings):
     df_plot = df[["BFS_Nummer", settings["selected_variable"]]]
     df_plot.fillna(-1, inplace=True)
-    for col in df_plot.columns:
-        df_plot[col] = df_plot[col].replace('( )', -1)
-        df_plot[col] = df_plot[col].astype('float64')
 
     # center on Liberty Bell
     coordinates = [47.45, 7.65]
@@ -489,6 +487,7 @@ def barchart(df, settings):
             stroke=None,
         )
     """
+
     sort_field = settings["x"].replace(":Q", "")
     chart = (
         alt.Chart(df)
@@ -504,10 +503,7 @@ def barchart(df, settings):
                 sort=alt.EncodingSortField(field=sort_field, order="descending"),
             ),
             color=alt.condition(
-                alt.datum.BFS_Nummer
-                == settings[
-                    "sel_gemeinde"
-                ],  # If the country is "US" this test returns True,
+                alt.datum.selected,
                 alt.value("red"),  # highlight a bar with red.
                 alt.value("lightgrey"),  # And grey for the rest of the bars
             ),
@@ -533,3 +529,39 @@ def barchart(df, settings):
         width=settings["width"], height=settings["height"], title=title
     )
     st.altair_chart(plot)
+
+
+def radar_chart(df: pd.DataFrame, settings:dict):
+    """Shows a radar plot. Data is first normalized to a 0-100 scale.
+
+    Args:
+        df (pd.DataFrame)): Expected input: df with columns: ['name', *[name of variables]]
+        settings (_type_): [title, ]
+    """
+ 
+    variables = list(df.columns).copy()
+    variables.remove('name')
+    fig = go.Figure()
+    
+    for index, row in df.iterrows():
+        trace = []
+        name = row['name']
+        for col in variables:
+            trace.append(row[col])
+        fig.add_trace(go.Scatterpolar(
+            r=trace,
+            theta=variables,
+            fill='toself',
+            name=name
+        ))
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=settings['range']
+            )
+        ),
+        showlegend=True
+    )
+    st.plotly_chart(fig)

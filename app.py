@@ -1,18 +1,16 @@
 import os
 import streamlit as st
-from streamlit_folium import st_folium
-import folium
 import geojson
 import json
 import pandas as pd
-import requests
-import altair as alt
-from plots import chloropleth_chart, barchart
 
-__version__ = "0.0.2"
+from plots import chloropleth_chart, barchart, radar_chart
+import texts
+
+__version__ = "0.0.3"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
-VERSION_DATE = "2023-09-16"
+VERSION_DATE = "2023-09-23"
 APP_NAME = "GemeindeAtlas-BL"
 GIT_REPO = "https://github.com/lcalmbach/gemeinde-atlas-bl"
 
@@ -25,6 +23,8 @@ def init():
         page_icon="🏠",
         layout="wide",
     )
+    if "selected" not in st.session_state:
+        st.session_state.selected = []
 
 
 def get_app_info():
@@ -46,6 +46,7 @@ def get_app_info():
 
 def get_feature(row):
     coordinates = json.loads(row["Geometrie"])["coordinates"][0]
+
     return geojson.Feature(
         geometry=geojson.Polygon(coordinates),
         properties={"Gemeinde": row["Gemeinde"], "BFS_Nummer": row["BFS_Nummer"]},
@@ -62,23 +63,77 @@ def get_options(df):
     return my_list
 
 
+def get_radar_data(df):
+    if len(df) > 0:
+        vars = [
+            "Landwirtschaftsfläche_Prozent",
+            "Beschäftigte_2020",
+            "Ausländeranteil_2022_Prozent",
+            "Steuerertrag_2021_1000_CHF",
+            "Steuerfuss_2023",
+            "0_bis_14jährige_Prozent",
+            "15_bis_64jährige_Prozent",
+            "65jährige_und_älter_Prozent",
+            "Arbeitsstätten_2020",
+            "Einfamilienhäuser_Prozent",
+            "Leerwohnungsziffer_2023_Prozent",
+            "Bodenpreis_m2_Wohnbauland_2020_2022_CHF",
+            "Bevölkerung_2022"
+        ]
+        vars_new_names = [
+            "Landwirtschaftsfläche_Pzt",
+            "Beschäftigte_pro_1000_Einw",
+            "Ausländeranteil_Pzt",
+            "Steuerertrag_CHF_pro_Einw",
+            "Steuerfuss",
+            "0_14_Jahre_Pzt",
+            "15_64_Jahre_Pzt",
+            "65_und_mehr_Jahre_Pzt",
+            "Arbeitsstätten_pro_1000_Einw",
+            "Einfamilienhäuser_Pzt",
+            "Leerwohnungsziffer_Pzt",
+            "Bodenpreis_1000_CHF_m2",
+            "Bevölkerung"
+        ]
+        df_radar = df[["Gemeinde", "BFS_Nummer"] + vars]
+        df_radar = df_radar.rename(columns=dict(zip(vars, vars_new_names)))
+        vars_convert = ["Beschäftigte_pro_1000_Einw",
+                        "Steuerertrag_CHF_pro_Einw",
+                        "Arbeitsstätten_pro_1000_Einw",
+        ]
+        for var in vars_convert:
+            df_radar[var] = df_radar[var] / df_radar["Bevölkerung"] * 1000
+
+        ranges = {var: [df_radar[var].min(), df_radar[var].max()] for var in vars_new_names}
+
+        for var in vars_new_names:
+            max = df_radar[var].max()
+            df_radar[var] = df_radar[var] / max * 5
+        
+        df_radar = df_radar[df_radar["BFS_Nummer"].isin(st.session_state.selected)]
+        df_radar.drop(["BFS_Nummer"], axis=1, inplace=True)
+        df_radar = df_radar.rename(columns={"Gemeinde": "name"})
+        df_radar.drop(["Bevölkerung"], axis=1, inplace=True)
+        return df_radar, ranges
+    else:
+        return None, None
+
+
+def reset_gemeinde_selection():
+    st.write(123)
+    st.session_state.selected = []
+
+
 def main():
     init()
     cols = st.columns([1, 20])
     with cols[0]:
-        st.image('./baslerstab.png')
+        st.image("./baslerstab.png")
     with cols[1]:
         st.header(APP_NAME)
     with st.expander("ℹ️ Info"):
         st.markdown(
-            """Diese App zeigt dir verschiedene Informationen zu den Gemeinden im Kanton Basel-Landschaft 
-([Datenquelle](https://data.bl.ch/explore/dataset/10650)). 
-Zuerst wählst du eine Kennzahl aus, und danach klickst du auf eine Gemeinde. 
-Neben der Karte siehst du anschliessend:
-- eine Balkengrafik mit den Werten der Kennzahl aller Gemeinden, wobei die Gemeinde, die du ausgewählt hast rot markiert ist.
-- Alle Werte für die Gemeinde als Tabelle.
-- Einen Link auf die Webseite der Gemeinde.
-        """
+            texts.intro
         )
     # Read the JSON file into a Python object
     df = pd.read_csv("./10650.csv", sep=";")
@@ -93,25 +148,49 @@ Neben der Karte siehst du anschliessend:
 
         with open(gemeinden_json, "w") as json_file:
             json.dump(var_geojson, json_file)
-
+    # replace missing values: () by -1
+    for col in df.columns:
+        if not (col in ["Gemeinde", "Bezirk", "BFS_Nummer", "Webseite", "Geometrie", "Geometrisches_Zentrum"]):
+            df[col] = df[col].replace('( )', -1)
+            df[col] = df[col].astype('float64')
     options = get_options(df)
-    selected_variable = st.selectbox("Wähle eine Kennzahl aus", options)
+    selected_variable = st.selectbox("Wähle eine Kennzahl aus", options, on_change=reset_gemeinde_selection)
     settings = {
         "selected_variable": selected_variable,
         "var_geojson": var_geojson,
         "width": 700,
-        "height": 400,
+        "height": 500,
         "zoom": 10,
     }
     cols = st.columns([4, 3])
     with cols[0]:
         id = chloropleth_chart(df, settings)
+        # add the id to the selected item is not already in the list
+        # else remove it
+        if id in st.session_state.selected:
+            st.session_state.selected.remove(id)
+        else:
+            st.session_state.selected.append(id)
+        if st.session_state.selected != []:
+            data, ranges = get_radar_data(df)
+            settings = {"title": "Rarar Chart", "range": [0, 5]}
+            radar_chart(data, settings)
+            text = texts.radar_chart
+            st.markdown(text)
+            df_ = pd.DataFrame(ranges).T
+            df_.columns=["Min", "Max"]
+            st.dataframe(df_)
+            if st.button("Selektion zurücksetzen"):
+                st.session_state.selected = []
+
+
     with cols[1]:
         if id > 0:
-            gemeinde = df[df['BFS_Nummer'] == id]["Gemeinde"].iloc[0]
+            gemeinde = df[df["BFS_Nummer"] == id]["Gemeinde"].iloc[0]
             tabs = st.tabs(["Rang", "Gemeinde Details", "Webseite"])
             with tabs[0]:
                 df_bc = df[["BFS_Nummer", "Gemeinde", selected_variable]]
+                df_bc['selected'] = df_bc["BFS_Nummer"].isin(st.session_state.selected)
                 settings = {
                     "y": "Gemeinde",
                     "x": f"{selected_variable}:Q",
@@ -126,13 +205,18 @@ Neben der Karte siehst du anschliessend:
                 barchart(df_bc, settings)
             with tabs[1]:
                 df_pivot = df[df["BFS_Nummer"] == id]
-                df_pivot = df_pivot.drop(['Webseite', 'Geometrie', 'Geometrisches_Zentrum'], axis=1)
+                df_pivot = df_pivot.drop(
+                    ["Webseite", "Geometrie", "Geometrisches_Zentrum"], axis=1
+                )
                 df_pivot = df_pivot.T
-                df_pivot.columns = ['Wert']
+                df_pivot.columns = ["Wert"]
                 st.dataframe(df_pivot)
             with tabs[2]:
-                website = df[df['BFS_Nummer'] == id]["Webseite"].iloc[0]
-                st.markdown(f'<a href="https://{website}">Webseite der Gemeinde {gemeinde}</a>', unsafe_allow_html=True)
+                website = df[df["BFS_Nummer"] == id]["Webseite"].iloc[0]
+                st.markdown(
+                    f'<a href="https://{website}">Webseite der Gemeinde {gemeinde}</a>',
+                    unsafe_allow_html=True,
+                )
 
 
 if __name__ == "__main__":
