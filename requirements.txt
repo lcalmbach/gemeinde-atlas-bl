@@ -3,3 +3,4 @@ geojson
 streamlit_folium
 folium
 iso639
+plotly

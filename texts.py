@@ -1,4 +1,4 @@
-intro = """Diese App zeigt dir verschiedene Informationen zu den Gemeinden im Kanton Basel-Landschaft ([Datenquelle](https://data.bl.ch/explore/dataset/10650)). 
+intro = """Diese App zeigt dir verschiedene Informationen zu den Gemeinden im Kanton Basel-Landschaft ([Datenquelle](https://data.bl.ch/explore/dataset/10650)).
 
 Zuerst wählst du eine Kennzahl aus, und danach klickst du auf eine Gemeinde.
 Neben der Karte siehst du anschliessend:
@@ -14,4 +14,5 @@ radar_chart = """Ein Radar-Chart kann eine hilfreiche Methode sein, um mehrere M
 
 Um die Vergleichbarkeit der unterschiedlichen Merkmale zu gewährleisten, wurden alle Werte auf eine Skala von 0 bis 5 normalisiert. Dabei repräsentiert der Wert 0 das jeweilige Minimum und der Wert 5 das Maximum innerhalb des betrachteten Datensatzes für jedes Merkmal. Diese Normalisierung erlaubt es, eine balancierte Sicht auf die Stärken und Schwächen jeder Gemeinde zu bekommen, ohne dass ein einzelnes Merkmal das Gesamtbild verzerrt.
 
-Bitte beachte, dass die Werte im Diagramm relativ zu den beobachteten Minima und Maxima in diesem speziellen Datensatz sind. Sie sollten daher nicht ohne Kontext oder ohne Kenntnis der ursprünglichen Skalen interpretiert werden. In der untenstehenden Tabelle sind die Minima und Maxima für jede Achse gelistet. Eine 0 auf der Achse des Radar-Charts entspricht dem Minimum Wert für den entsprechenden Parameter, eine 5 entspricht dem Maximum Wert aller Gemeinden."""
+Bitte beachte, dass die Werte im Diagramm relativ zu den beobachteten Minima und Maxima in diesem speziellen Datensatz sind. Sie sollten daher nicht ohne Kontext oder ohne Kenntnis der ursprünglichen Skalen interpretiert werden. In der untenstehenden Tabelle sind die Minima und Maxima für jede Achse gelistet. Eine 0 auf der Achse des Radar-Charts entspricht dem Minimum Wert für den entsprechenden Parameter, eine 5 entspricht dem Maximum Wert aller Gemeinden.
+"""
