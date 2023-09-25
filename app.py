@@ -7,10 +7,10 @@ import pandas as pd
 from plots import chloropleth_chart, barchart, radar_chart
 import texts
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
-VERSION_DATE = "2023-09-23"
+VERSION_DATE = "2023-09-25"
 APP_NAME = "GemeindeAtlas-BL"
 GIT_REPO = "https://github.com/lcalmbach/gemeinde-atlas-bl"
 
@@ -128,7 +128,7 @@ def main():
     init()
     cols = st.columns([1, 20])
     with cols[0]:
-        st.image("./baslerstab.png")
+        st.image("./liestal_tor.jpg")
     with cols[1]:
         st.header(APP_NAME)
     with st.expander("ℹ️ Info"):
